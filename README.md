@@ -1,7 +1,7 @@
 # DCC
 R code for "A Gaussian model for survival data subject to dependent censoring and confounding".
 
-This repository contains all the R code used for the simulations and data application in the paper "A Gaussian model for survival data subject to dependent censoring and confounding" (link).
+This repository contains all the R code used for the simulations and data application in the paper "A Gaussian model for survival data subject to dependent censoring and confounding" (http://arxiv.org/abs/2208.04184).
 
 The Functions.R file is called in almost all the other files and contains the likelihood functions, asymptotic variance calculations and confidence interval construction among other things.
 
