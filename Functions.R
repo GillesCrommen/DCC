@@ -22,7 +22,7 @@ dat.sim.reg = function(n,par,iseed,Zbin,Wbin){
     W = sample(c(0,1), n, replace = TRUE)}
   else if (Wbin==1)
   {
-    W = runif(n,0,2)
+    W = runif(n,-1,1)
   }
   
   XandW=as.matrix(cbind(x0,x1,W))
@@ -39,6 +39,230 @@ dat.sim.reg = function(n,par,iseed,Zbin,Wbin){
     Z = XandW%*%gamma+V
     realV= Z-(XandW%*%gamma)
   }
+  
+  Mgen = matrix(c(x0,x1,Z,realV),ncol=parl,nrow=n) 
+  T = Mgen%*%beta+err1
+  C = Mgen%*%eta+err2
+  
+  M = matrix(c(x0,x1,Z,W),ncol=parl,nrow=n)    # data matrix
+  
+  Y = pmin(T,C)
+  d1 = as.numeric(Y==T)
+  data = cbind(Y,d1,M,realV)
+  
+  return(data)
+}
+
+dat.sim.regGumbel = function(n,par,iseed,Zbin,Wbin){
+  
+  set.seed(iseed)
+  beta = par[[1]]
+  eta = par[[2]]
+  sd = par[[3]]
+  gamma = par[[4]]
+  
+  
+  U = rCopula(1,normalCopula(param = sd[3],dim = 2))
+  
+  scalep1 = sqrt((sd[1]^2)*6/(pi^2))
+  scalep2 = sqrt((sd[2]^2)*6/(pi^2))
+  locp1 = scalep1*digamma(1)
+  locp2 = scalep2*digamma(1)
+  
+  err1 = qevd(U[,1],location = locp1, scale = scalep1)
+  err2 = qevd(U[,2],location = locp2, scale = scalep2)
+  
+  x0 = rep(1,n)  # to keep the intercept
+  
+  x1 = rnorm(n,0,1)
+  
+  if (Wbin==2)
+  {
+    W = sample(c(0,1), n, replace = TRUE)}
+  else if (Wbin==1)
+  {
+    W = runif(n,-1,1)
+  }
+  
+  XandW=as.matrix(cbind(x0,x1,W))
+  
+  if (Zbin==2)
+  {
+    V=rlogis(n)
+    Z = as.matrix(as.numeric(XandW%*%gamma-V>0))
+    realV=(1-Z)*((1+exp(XandW%*%gamma))*log(1+exp(XandW%*%gamma))-(XandW%*%gamma)*exp(XandW%*%gamma))-Z*((1+exp(-(XandW%*%gamma)))*log(1+exp(-(XandW%*%gamma)))+(XandW%*%gamma)*exp(-(XandW%*%gamma)))
+  }
+  else if (Zbin==1)
+  {
+    V=rnorm(n,0,2)
+    Z = XandW%*%gamma+V
+    realV= Z-(XandW%*%gamma)
+  }
+  
+  Mgen = matrix(c(x0,x1,Z,realV),ncol=parl,nrow=n) 
+  T = Mgen%*%beta+err1
+  C = Mgen%*%eta+err2
+  
+  M = matrix(c(x0,x1,Z,W),ncol=parl,nrow=n)    # data matrix
+  
+  Y = pmin(T,C)
+  d1 = as.numeric(Y==T)
+  data = cbind(Y,d1,M,realV)
+  
+  return(data)
+}
+
+dat.sim.regFrank = function(n,par,iseed,Zbin,Wbin){
+  
+  set.seed(iseed)
+  beta = par[[1]]
+  eta = par[[2]]
+  sd = par[[3]]
+  gamma = par[[4]]
+  
+  gm = as.numeric(ktau_to_par("frank",par_to_ktau("gaussian",0,sd[3])))
+  
+  U = rCopula(1,frankCopula(param = gm,dim = 2, use.indepC="FALSE"))
+  
+  err1 = qnorm(U[,1], mean = 0, sd = sd[1])
+  err2 = qnorm(U[,2], mean = 0, sd = sd[2])
+  
+  x0 = rep(1,n)  # to keep the intercept
+  
+  x1 = rnorm(n,0,1)
+  
+  if (Wbin==2)
+  {
+    W = sample(c(0,1), n, replace = TRUE)}
+  else if (Wbin==1)
+  {
+    W = runif(n,-1,1)
+  }
+  
+  XandW=as.matrix(cbind(x0,x1,W))
+  
+  if (Zbin==2)
+  {
+    V=rlogis(n)
+    Z = as.matrix(as.numeric(XandW%*%gamma-V>0))
+    realV=(1-Z)*((1+exp(XandW%*%gamma))*log(1+exp(XandW%*%gamma))-(XandW%*%gamma)*exp(XandW%*%gamma))-Z*((1+exp(-(XandW%*%gamma)))*log(1+exp(-(XandW%*%gamma)))+(XandW%*%gamma)*exp(-(XandW%*%gamma)))
+  }
+  else if (Zbin==1)
+  {
+    V=rnorm(n,0,2)
+    Z = XandW%*%gamma+V
+    realV= Z-(XandW%*%gamma)
+  }
+  
+  Mgen = matrix(c(x0,x1,Z,realV),ncol=parl,nrow=n) 
+  T = Mgen%*%beta+err1
+  C = Mgen%*%eta+err2
+  
+  M = matrix(c(x0,x1,Z,W),ncol=parl,nrow=n)    # data matrix
+  
+  Y = pmin(T,C)
+  d1 = as.numeric(Y==T)
+  data = cbind(Y,d1,M,realV)
+  
+  return(data)
+}
+
+dat.sim.regprobit = function(n,par,iseed,Zbin,Wbin){
+  
+  set.seed(iseed)
+  beta = par[[1]]
+  eta = par[[2]]
+  sd = par[[3]]
+  gamma = par[[4]]
+  
+  mu = c(0,0)
+  sigma = matrix(c(sd[1]^2,sd[1]*sd[2]*sd[3], sd[1]*sd[2]*sd[3], sd[2]^2),ncol=2)
+  err = mvrnorm(n, mu =mu , Sigma=sigma)
+  
+  err1 = err[,1]
+  err2 = err[,2]
+  
+  x0 = rep(1,n)  # to keep the intercept
+  
+  x1 = rnorm(n,0,1)
+  
+  if (Wbin==2)
+  {
+    W = sample(c(0,1), n, replace = TRUE)}
+  else if (Wbin==1)
+  {
+    W = runif(n,-1,1)
+  }
+  
+  XandW=as.matrix(cbind(x0,x1,W))
+  
+  if (Zbin==2)
+  {
+    V=rnorm(n)
+    Z = as.matrix(as.numeric(XandW%*%gamma-V>0))
+    realV=(1-Z)*(dnorm(XandW%*%gamma)/pnorm(-XandW%*%gamma))-Z*(dnorm(XandW%*%gamma)/pnorm(XandW%*%gamma))
+  }
+  else if (Zbin==1)
+  {
+    V=rnorm(n,0,2)
+    Z = XandW%*%gamma+V
+    realV= Z-(XandW%*%gamma)
+  }
+  
+  Mgen = matrix(c(x0,x1,Z,realV),ncol=parl,nrow=n) 
+  T = Mgen%*%beta+err1
+  C = Mgen%*%eta+err2
+  
+  M = matrix(c(x0,x1,Z,W),ncol=parl,nrow=n)    # data matrix
+  
+  Y = pmin(T,C)
+  d1 = as.numeric(Y==T)
+  data = cbind(Y,d1,M,realV)
+  
+  return(data)
+}
+
+dat.sim.regnounmconf = function(n,par,iseed,Zbin,Wbin){
+  
+  set.seed(iseed)
+  beta = par[[1]]
+  eta = par[[2]]
+  sd = par[[3]]
+  gamma = par[[4]]
+  
+  mu = c(0,0)
+  sigma = matrix(c(sd[1]^2,sd[1]*sd[2]*sd[3], sd[1]*sd[2]*sd[3], sd[2]^2),ncol=2)
+  err = mvrnorm(n, mu =mu , Sigma=sigma)
+  
+  err1 = err[,1]
+  err2 = err[,2]
+  
+  x0 = rep(1,n)  # to keep the intercept
+  
+  x1 = rnorm(n,0,1)
+  
+  if (Wbin==2)
+  {
+    W = sample(c(0,1), n, replace = TRUE)}
+  else if (Wbin==1)
+  {
+    W = runif(n,-1,1)
+  }
+  
+  XandW=as.matrix(cbind(x0,x1,W))
+  
+  if (Zbin==2)
+  {
+    V=rlogis(n)
+    Z = as.matrix(as.numeric(XandW%*%gamma-V>0))
+  }
+  else if (Zbin==1)
+  {
+    V=rnorm(n,0,2)
+    Z = XandW%*%gamma+V
+  }
+  
+  realV = rep(0,n)
   
   Mgen = matrix(c(x0,x1,Z,realV),ncol=parl,nrow=n) 
   T = Mgen%*%beta+err1
@@ -154,7 +378,7 @@ LikI = function(par,Y,Delta,M){ # independence model assumption (rho = 0)
   
   tot = (((1/sigma1)*dnorm(z1)*(1-pnorm(z2)))^Delta)*(((1/sigma2)*dnorm(z2)*(1-pnorm(z1)))^(1-Delta))
   p1 = pmax(tot,1e-100)
-  Logn = sum(log(p1)); 
+  Logn = sum(log(p1))
   return(-Logn)
 }
 
@@ -164,7 +388,7 @@ LikGamma1 = function(par,Y,M){ # maximum likelihood for Gamma
   
   tot = (Y-M%*%gamma)^2
   p1 = pmax(tot,1e-100)
-  Logn = sum(log(p1)); 
+  Logn = sum(log(p1)) 
   return(Logn)
 }
 
@@ -174,7 +398,7 @@ LikGamma2 = function(par,Y,M){ # maximum likelihood for Gamma
   
   tot = (plogis(M%*%gamma)^Y)*((1-plogis(M%*%gamma))^(1-Y))
   p1 = pmax(tot,1e-100)
-  Logn = sum(log(p1)); 
+  Logn = sum(log(p1)) 
   return(-Logn)
 }
 
@@ -238,7 +462,7 @@ LikIGamma2 = function(par,Y,Delta,M){ # no dependent censoring
   return(-Logn)
 }
 
-SimulationCI11 = function(n,nsim,iseed)
+SimulationCI11 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
 {
   sum = c()
   sum1 = c()
@@ -250,14 +474,13 @@ SimulationCI11 = function(n,nsim,iseed)
   results2 = c()
   results3 = c()
   
-  for (i in 1:nsim)
-  {
+  numCores <- detectCores()-1
+  clust = makeCluster(numCores)
+  registerDoParallel(clust)
     
-    if ( round(i %% (nsim/10)) == 0)
-    {cat((i/nsim)*100,"%", "\n", sep="")}
+  finalest = foreach(i = 1:nsim,.combine=rbind, .packages=pack, .export=c("dat.sim.reg","LikF","LikFG1","LikFG2","LikGamma1","LikGamma2","LikI","LikIGamma1","LikIGamma2")) %dopar% {
     
     data = dat.sim.reg(n,parN,iseed+i,1,1)
-    
     
     Y = data[,1]
     Delta = data[,2]
@@ -267,15 +490,15 @@ SimulationCI11 = function(n,nsim,iseed)
     XandW = cbind(data[,3],X,W)
     
     gammaest <- lm(Z~X+W)$coefficients
-    V <- Z-(XandW%*%gammaest)
+    V = Z-(XandW%*%gammaest)
     
     M = cbind(data[,3:(1+parl)],V)
     MnoV = data[,3:(2+parl)]
     MrealV = cbind(data[,3:(1+parl)],data[,ncol(data)])
     
-    per=per+table(Delta)[1]
+    per=sum(Delta)/n
     
-    init = c(rep(0,totparl),1,1) # Starting values
+    init = c(rep(1,totparl),1,1) # Starting values
     
     # Independent model for starting values sigma
     
@@ -289,7 +512,7 @@ SimulationCI11 = function(n,nsim,iseed)
     initE = initE[-(2*parl-1)]
     initE = c(initE,0)
     
-    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-1),ub=c(rep(Inf,(totparl-2)),Inf,Inf,1),
+    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,(totparl-2)),Inf,Inf,(1-1e-4)),
                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     H1 = hessian(LikF,parhatE,Y=Y,Delta=Delta,M=ME,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -328,7 +551,7 @@ SimulationCI11 = function(n,nsim,iseed)
     
     initd = c(parhat1,0)
     
-    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     parhatG = c(parhat,as.vector(gammaest))
@@ -423,7 +646,7 @@ SimulationCI11 = function(n,nsim,iseed)
     
     # Model with real V
     
-    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                       eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     Hre = hessian(LikF,parhatre,Y=Y,Delta=Delta,M=MrealV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -504,14 +727,40 @@ SimulationCI11 = function(n,nsim,iseed)
     
     EC4 = cbind(matrix(c(parhat1[1:totparl]-1.96*(seI[1:totparl]),s1_lI,s2_lI),ncol=1),matrix(c(parhat1[1:totparl]+1.96*(seI[1:totparl]),s1_uI,s2_uI), ncol=1))
     
-    results = rbind(results,c(parhat,se,c(t(EC1))))
-    results1 = rbind(results1,c(parhatE,se1,c(t(EC2))))
-    results2 = rbind(results2,c(parhatre,sere,c(t(EC3))))
-    results3 = rbind(results3,c(parhat1,seI,c(t(EC4))))
-    
+    finalest=list(c(parhat,se,c(t(EC1))),c(parhatE,se1,c(t(EC2))),c(parhatre,sere,c(t(EC3))),c(parhat1,seI,c(t(EC4))),per)
+    finalest
   }
   
-  print(per/(n*nsim))     #percentage of censoring
+  stopCluster(clust)
+  
+  per = 0
+  
+  for (j in (4*nsim+1):(5*nsim)) {
+    per = per + finalest[[j]]
+  }
+  
+  print(per/(nsim))     #percentage of censoring
+  
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  for (j in 1:nsim) {
+    results = rbind(results,finalest[[j]])
+  }
+  
+  for (j in (nsim+1):(2*nsim)) {
+    results1 = rbind(results1,finalest[[j]])
+  }
+  
+  for (j in (2*nsim+1):(3*nsim)) {
+    results2 = rbind(results2,finalest[[j]])
+  }
+  
+  for (j in (3*nsim+1):(4*nsim)) {
+    results3 = rbind(results3,finalest[[j]])
+  }
   
   ## Results of model with estimated V
   
@@ -659,7 +908,7 @@ SimulationCI11 = function(n,nsim,iseed)
   print(xtab3, add.to.row=addtorow, include.colnames=TRUE)
 }
 
-SimulationCI12 = function(n,nsim,iseed)
+SimulationCI12 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
 {
   sum = c()
   sum1 = c()
@@ -671,11 +920,11 @@ SimulationCI12 = function(n,nsim,iseed)
   results2 = c()
   results3 = c()
   
-  for (i in 1:nsim)
-  {
-    
-    if ( round(i %% (nsim/10)) == 0)
-    {cat((i/nsim)*100,"%", "\n", sep="")}
+  numCores <- detectCores()-1
+  clust = makeCluster(numCores)
+  registerDoParallel(clust)
+  
+  finalest = foreach(i = 1:nsim,.combine=rbind, .packages=pack, .export=c("dat.sim.reg","LikF","LikFG1","LikFG2","LikGamma1","LikGamma2","LikI","LikIGamma1","LikIGamma2")) %dopar% {
     
     data = dat.sim.reg(n,parN,iseed+i,1,2)
     
@@ -693,7 +942,7 @@ SimulationCI12 = function(n,nsim,iseed)
     MnoV = data[,3:(2+parl)]
     MrealV = cbind(data[,3:(1+parl)],data[,ncol(data)])
     
-    per=per+table(Delta)[1]
+    per=sum(Delta)/n
     
     init = c(rep(0,totparl),1,1) # Starting values
     
@@ -709,7 +958,7 @@ SimulationCI12 = function(n,nsim,iseed)
     initE = initE[-(2*parl-1)]
     initE = c(initE,0)
     
-    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-1),ub=c(rep(Inf,(totparl-2)),Inf,Inf,1),
+    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,(totparl-2)),Inf,Inf,(1-1e-4)),
                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     H1 = hessian(LikF,parhatE,Y=Y,Delta=Delta,M=ME,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -748,7 +997,7 @@ SimulationCI12 = function(n,nsim,iseed)
     
     initd = c(parhat1,0)
     
-    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     parhatG = c(parhat,as.vector(gammaest))
@@ -843,7 +1092,7 @@ SimulationCI12 = function(n,nsim,iseed)
     
     # Model with real V
     
-    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                       eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     Hre = hessian(LikF,parhatre,Y=Y,Delta=Delta,M=MrealV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -924,14 +1173,41 @@ SimulationCI12 = function(n,nsim,iseed)
     
     EC4 = cbind(matrix(c(parhat1[1:totparl]-1.96*(seI[1:totparl]),s1_lI,s2_lI),ncol=1),matrix(c(parhat1[1:totparl]+1.96*(seI[1:totparl]),s1_uI,s2_uI), ncol=1))
     
-    results = rbind(results,c(parhat,se,c(t(EC1))))
-    results1 = rbind(results1,c(parhatE,se1,c(t(EC2))))
-    results2 = rbind(results2,c(parhatre,sere,c(t(EC3))))
-    results3 = rbind(results3,c(parhat1,seI,c(t(EC4))))
+    finalest=list(c(parhat,se,c(t(EC1))),c(parhatE,se1,c(t(EC2))),c(parhatre,sere,c(t(EC3))),c(parhat1,seI,c(t(EC4))),per)
+    finalest
     
   }
   
-  print(per/(n*nsim))     #percentage of censoring
+  stopCluster(clust)
+  
+  per = 0
+  
+  for (j in (4*nsim+1):(5*nsim)) {
+    per = per + finalest[[j]]
+  }
+  
+  print(per/(nsim))     #percentage of censoring
+  
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  for (j in 1:nsim) {
+    results = rbind(results,finalest[[j]])
+  }
+  
+  for (j in (nsim+1):(2*nsim)) {
+    results1 = rbind(results1,finalest[[j]])
+  }
+  
+  for (j in (2*nsim+1):(3*nsim)) {
+    results2 = rbind(results2,finalest[[j]])
+  }
+  
+  for (j in (3*nsim+1):(4*nsim)) {
+    results3 = rbind(results3,finalest[[j]])
+  }
   
   ## Results of model with estimated V
   
@@ -1079,7 +1355,7 @@ SimulationCI12 = function(n,nsim,iseed)
   print(xtab3, add.to.row=addtorow, include.colnames=TRUE)
 }
 
-SimulationCI21 = function(n,nsim,iseed)
+SimulationCI21 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
 {
   sum = c()
   sum1 = c()
@@ -1091,11 +1367,11 @@ SimulationCI21 = function(n,nsim,iseed)
   results2 = c()
   results3 = c()
   
-  for (i in 1:nsim)
-  {
-    
-    if ( round(i %% (nsim/10)) == 0)
-    {cat((i/nsim)*100,"%", "\n", sep="")}
+  numCores <- detectCores()-1
+  clust = makeCluster(numCores)
+  registerDoParallel(clust)
+  
+  finalest = foreach(i = 1:nsim,.combine=rbind, .packages=pack, .export=c("dat.sim.reg","LikF","LikFG1","LikFG2","LikGamma1","LikGamma2","LikI","LikIGamma1","LikIGamma2")) %dopar% {
     
     data = dat.sim.reg(n,parN,iseed+i,2,1)
     
@@ -1114,7 +1390,7 @@ SimulationCI21 = function(n,nsim,iseed)
     MnoV = data[,3:(2+parl)]
     MrealV = cbind(data[,3:(1+parl)],data[,ncol(data)])
     
-    per=per+table(Delta)[1]
+    per=sum(Delta)/n
     
     init = c(rep(0,totparl),1,1) # Starting values
     
@@ -1130,7 +1406,7 @@ SimulationCI21 = function(n,nsim,iseed)
     initE = initE[-(2*parl-1)]
     initE = c(initE,0)
     
-    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-1),ub=c(rep(Inf,(totparl-2)),Inf,Inf,1),
+    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,(totparl-2)),Inf,Inf,(1-1e-4)),
                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     H1 = hessian(LikF,parhatE,Y=Y,Delta=Delta,M=ME,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -1169,7 +1445,7 @@ SimulationCI21 = function(n,nsim,iseed)
     
     initd = c(parhat1,0)
     
-    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     parhatG = c(parhat,as.vector(gammaest))
@@ -1260,7 +1536,7 @@ SimulationCI21 = function(n,nsim,iseed)
     
     # Model with real V
     
-    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                       eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     Hre = hessian(LikF,parhatre,Y=Y,Delta=Delta,M=MrealV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -1341,14 +1617,41 @@ SimulationCI21 = function(n,nsim,iseed)
     
     EC4 = cbind(matrix(c(parhat1[1:totparl]-1.96*(seI[1:totparl]),s1_lI,s2_lI),ncol=1),matrix(c(parhat1[1:totparl]+1.96*(seI[1:totparl]),s1_uI,s2_uI), ncol=1))
     
-    results = rbind(results,c(parhat,se,c(t(EC1))))
-    results1 = rbind(results1,c(parhatE,se1,c(t(EC2))))
-    results2 = rbind(results2,c(parhatre,sere,c(t(EC3))))
-    results3 = rbind(results3,c(parhat1,seI,c(t(EC4))))
+    finalest=list(c(parhat,se,c(t(EC1))),c(parhatE,se1,c(t(EC2))),c(parhatre,sere,c(t(EC3))),c(parhat1,seI,c(t(EC4))),per)
+    finalest
     
   }
   
-  print(per/(n*nsim))     #percentage of censoring
+  stopCluster(clust)
+  
+  per = 0
+  
+  for (j in (4*nsim+1):(5*nsim)) {
+    per = per + finalest[[j]]
+  }
+  
+  print(per/(nsim))     #percentage of censoring
+  
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  for (j in 1:nsim) {
+    results = rbind(results,finalest[[j]])
+  }
+  
+  for (j in (nsim+1):(2*nsim)) {
+    results1 = rbind(results1,finalest[[j]])
+  }
+  
+  for (j in (2*nsim+1):(3*nsim)) {
+    results2 = rbind(results2,finalest[[j]])
+  }
+  
+  for (j in (3*nsim+1):(4*nsim)) {
+    results3 = rbind(results3,finalest[[j]])
+  }
   
   ## Results of model with estimated V
   
@@ -1497,7 +1800,7 @@ SimulationCI21 = function(n,nsim,iseed)
 }
 
 
-SimulationCI22 = function(n,nsim,iseed)
+SimulationCI22 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
 {
   sum = c()
   sum1 = c()
@@ -1509,11 +1812,11 @@ SimulationCI22 = function(n,nsim,iseed)
   results2 = c()
   results3 = c()
   
-  for (i in 1:nsim)
-  {
-    
-    if ( round(i %% (nsim/10)) == 0)
-    {cat((i/nsim)*100,"%", "\n", sep="")}
+  numCores <- detectCores()-1
+  clust = makeCluster(numCores)
+  registerDoParallel(clust)
+  
+  finalest = foreach(i = 1:nsim,.combine=rbind, .packages=pack, .export=c("dat.sim.reg","LikF","LikFG1","LikFG2","LikGamma1","LikGamma2","LikI","LikIGamma1","LikIGamma2")) %dopar% {
     
     data = dat.sim.reg(n,parN,iseed+i,2,2)
     
@@ -1532,7 +1835,7 @@ SimulationCI22 = function(n,nsim,iseed)
     MnoV = data[,3:(2+parl)]
     MrealV = cbind(data[,3:(1+parl)],data[,ncol(data)])
     
-    per=per+table(Delta)[1]
+    per=sum(Delta)/n
     
     init = c(rep(0,totparl),1,1) # Starting values
     
@@ -1548,7 +1851,7 @@ SimulationCI22 = function(n,nsim,iseed)
     initE = initE[-(2*parl-1)]
     initE = c(initE,0)
     
-    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-1),ub=c(rep(Inf,(totparl-2)),Inf,Inf,1),
+    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,(totparl-2)),Inf,Inf,(1-1e-4)),
                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     H1 = hessian(LikF,parhatE,Y=Y,Delta=Delta,M=ME,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -1587,7 +1890,7 @@ SimulationCI22 = function(n,nsim,iseed)
     
     initd = c(parhat1,0)
     
-    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     parhatG = c(parhat,as.vector(gammaest))
@@ -1678,7 +1981,7 @@ SimulationCI22 = function(n,nsim,iseed)
     
     # Model with real V
     
-    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                       eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     Hre = hessian(LikF,parhatre,Y=Y,Delta=Delta,M=MrealV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -1759,14 +2062,41 @@ SimulationCI22 = function(n,nsim,iseed)
     
     EC4 = cbind(matrix(c(parhat1[1:totparl]-1.96*(seI[1:totparl]),s1_lI,s2_lI),ncol=1),matrix(c(parhat1[1:totparl]+1.96*(seI[1:totparl]),s1_uI,s2_uI), ncol=1))
     
-    results = rbind(results,c(parhat,se,c(t(EC1))))
-    results1 = rbind(results1,c(parhatE,se1,c(t(EC2))))
-    results2 = rbind(results2,c(parhatre,sere,c(t(EC3))))
-    results3 = rbind(results3,c(parhat1,seI,c(t(EC4))))
+    finalest=list(c(parhat,se,c(t(EC1))),c(parhatE,se1,c(t(EC2))),c(parhatre,sere,c(t(EC3))),c(parhat1,seI,c(t(EC4))),per)
+    finalest
     
   }
   
-  print(per/(n*nsim))     #percentage of censoring
+  stopCluster(clust)
+  
+  per = 0
+  
+  for (j in (4*nsim+1):(5*nsim)) {
+    per = per + finalest[[j]]
+  }
+  
+  print(per/(nsim))     #percentage of censoring
+  
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  for (j in 1:nsim) {
+    results = rbind(results,finalest[[j]])
+  }
+  
+  for (j in (nsim+1):(2*nsim)) {
+    results1 = rbind(results1,finalest[[j]])
+  }
+  
+  for (j in (2*nsim+1):(3*nsim)) {
+    results2 = rbind(results2,finalest[[j]])
+  }
+  
+  for (j in (3*nsim+1):(4*nsim)) {
+    results3 = rbind(results3,finalest[[j]])
+  }
   
   ## Results of model with estimated V
   
@@ -1914,6 +2244,292 @@ SimulationCI22 = function(n,nsim,iseed)
   print(xtab3, add.to.row=addtorow, include.colnames=TRUE)
 }
 
+MisspecificationCI22 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef,misspec)
+{
+  sum = c()
+  sum1 = c()
+  sum2 = c()
+  sum3 = c()
+  per=0
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  numCores <- detectCores()-1
+  clust = makeCluster(numCores)
+  registerDoParallel(clust)
+  
+  finalest = foreach(i = 1:nsim,.combine=rbind, .packages=pack, .export=c("dat.sim.regGumbel","dat.sim.regFrank","dat.sim.regprobit", "dat.sim.regnounmconf","LikF","LikFG1","LikFG2","LikGamma1","LikGamma2","LikI","LikIGamma1","LikIGamma2")) %dopar% {
+    
+    if (misspec == 1) {
+      data = dat.sim.regGumbel(n,parN,iseed+i,2,2) }
+    else if (misspec == 2) {
+      data = dat.sim.regFrank(n,parN,iseed+i,2,2)
+    }
+    else if (misspec == 3) {
+      data = dat.sim.regprobit(n,parN,iseed+i,2,2)
+    }
+    else if (misspec == 4) {
+      data = dat.sim.regnounmconf(n,parN,iseed+i,2,2)
+    }
+    
+    Y = data[,1]
+    Delta = data[,2]
+    X = data[,(4:parl)]
+    Z = data[,parl+1]
+    W = data[,parl+2]
+    XandW = cbind(data[,3],X,W)
+    
+    gammaest <- nloptr(x0=rep(0,parlgamma),eval_f=LikGamma2,Y=Z,M=XandW,lb=c(rep(-Inf,parlgamma)),ub=c(rep(Inf,parlgamma)),
+                       eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
+    V <- (1-Z)*((1+exp(XandW%*%gammaest))*log(1+exp(XandW%*%gammaest))-(XandW%*%gammaest)*exp(XandW%*%gammaest))-Z*((1+exp(-(XandW%*%gammaest)))*log(1+exp(-(XandW%*%gammaest)))+(XandW%*%gammaest)*exp(-(XandW%*%gammaest)))
+    
+    M = cbind(data[,3:(1+parl)],V)
+    MnoV = data[,3:(2+parl)]
+    MrealV = cbind(data[,3:(1+parl)],data[,ncol(data)])
+    
+    per=sum(Delta)/n
+    
+    init = c(rep(0,totparl),1,1) # Starting values
+    
+    # Independent model for starting values
+    
+    parhat1 = nloptr(x0=c(init),eval_f=LikI,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5),ub=c(rep(Inf,totparl),Inf,Inf),
+                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
+    
+    # Model with estimated V
+    
+    initd = c(parhat1,0)
+    
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
+                    eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
+    
+    parhatG = c(parhat,as.vector(gammaest))
+    
+    Hgamma = hessian(LikFG2,parhatG,Y=Y,Delta=Delta,M=MnoV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
+    
+    H = Hgamma[1:length(initd),1:length(initd)]
+    HI = ginv(H)
+    
+    Vargamma = Hgamma[1:length(initd),(length(initd)+1):(length(initd)+parlgamma)]
+    
+    prodvec = XandW[,1]
+    
+    for (i in 1:parlgamma) {
+      for (j in 2:parlgamma) {
+        if (i<=j){
+          prodvec<-cbind(prodvec,diag(XandW[,i]%*%t(XandW[,j])))
+        }
+      }
+    }
+    
+    secder=t(-dlogis(XandW%*%gammaest))%*%prodvec
+    
+    WM = secder[1:parlgamma]
+    for (i in 2:parlgamma) {
+      newrow<-secder[c(i,(i+2):(i+parlgamma))]
+      WM<-rbind(WM,newrow) 
+    }
+    
+    WMI = ginv(WM)
+    
+    diffvec = Z-plogis(XandW%*%gammaest)
+    
+    mi = c()
+    
+    for(i in 1:n){
+      newrow<-diffvec[i,]%*%XandW[i,]
+      mi = rbind(mi,newrow)
+    }
+    
+    psii = -WMI%*%t(mi)
+    
+    gi = c()
+    
+    for (i in 1:n)
+    {
+      J1 = jacobian(LikF,parhat,Y=Y[i],Delta=Delta[i],M=t(M[i,]),method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE))
+      gi = rbind(gi,c(J1))
+    }
+    
+    gi = t(gi)
+    
+    partvar = gi + Vargamma%*%psii
+    
+    Epartvar2 = (partvar%*%t(partvar))
+    
+    totvarex = HI%*%Epartvar2%*%t(HI)
+    
+    se = sqrt(abs(diag(totvarex)))
+    
+    # Delta method variance
+    
+    se_s1 = 1/parhat[totparl+1]*se[totparl+1]
+    se_s2 = 1/parhat[totparl+2]*se[totparl+2]
+    
+    # Conf. interval for transf. sigma's
+    
+    st1_l = log(parhat[totparl+1])-1.96*se_s1 ;  st1_u = log(parhat[totparl+1])+1.96*se_s1  
+    st2_l = log(parhat[totparl+2])-1.96*se_s2 ;  st2_u = log(parhat[totparl+2])+1.96*se_s2 
+    
+    # Back transform
+    
+    s1_l = exp(st1_l); s1_u = exp(st1_u); s2_l = exp(st2_l); s2_u = exp(st2_u) 
+    
+    # Confidence interval for rho
+    
+    zt = 0.5*(log((1+parhat[totparl+3])/(1-parhat[totparl+3])))     # Fisher's z transform
+    se_z = (1/(1-parhat[totparl+3]^2))*se[totparl+3]
+    zt_l = zt-1.96*(se_z)
+    zt_u = zt+1.96*(se_z)
+    
+    # Back transform
+    
+    r_l = (exp(2*zt_l)-1)/(exp(2*zt_l)+1)      
+    r_u = (exp(2*zt_u)-1)/(exp(2*zt_u)+1)
+    
+    EC1 = cbind(matrix(c(parhat[1:totparl]-1.96*(se[1:totparl]),s1_l,s2_l,r_l),ncol=1),matrix(c(parhat[1:totparl]+1.96*(se[1:totparl]),s1_u,s2_u,r_u), ncol=1))
+    
+    # Model with real V
+    
+    parhatre = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=MrealV,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
+                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
+    
+    Hre = hessian(LikF,parhatre,Y=Y,Delta=Delta,M=MrealV,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
+    HreI = ginv(Hre)
+    
+    sere = sqrt(abs(diag(HreI)))
+    
+    # Delta method variance
+    
+    sere_s1 = 1/parhatre[totparl+1]*sere[totparl+1]
+    sere_s2 = 1/parhatre[totparl+2]*sere[totparl+2]
+    
+    # Conf. interval for transf. sigma's
+    
+    st1re_l = log(parhatre[totparl+1])-1.96*sere_s1 ;  st1re_u = log(parhatre[totparl+1])+1.96*sere_s1 
+    st2re_l = log(parhatre[totparl+2])-1.96*sere_s2 ;  st2re_u = log(parhatre[totparl+2])+1.96*sere_s2 
+    
+    # Back transfrom
+    
+    s1re_l = exp(st1re_l); s1re_u = exp(st1re_u); s2re_l = exp(st2re_l); s2re_u = exp(st2re_u) 
+    
+    # Confidence interval for rho
+    
+    ztre = 0.5*(log((1+parhatre[totparl+3])/(1-parhatre[totparl+3])))     # Fisher's z transform
+    sere_z = (1/(1-parhatre[totparl+3]^2))*sere[totparl+3]
+    ztre_l = ztre-1.96*(sere_z)
+    ztre_u = ztre+1.96*(sere_z)
+    
+    # Back transform
+    
+    rre_l = (exp(2*ztre_l)-1)/(exp(2*ztre_l)+1)      
+    rre_u = (exp(2*ztre_u)-1)/(exp(2*ztre_u)+1)
+    
+    EC3 = cbind(matrix(c(parhatre[1:totparl]-1.96*(sere[1:totparl]),s1re_l,s2re_l,rre_l),ncol=1),matrix(c(parhatre[1:totparl]+1.96*(sere[1:totparl]),s1re_u,s2re_u,rre_u), ncol=1))
+    
+    finalest=list(c(parhat,se,c(t(EC1))),c(parhatre,sere,c(t(EC3))),per)
+    finalest
+    
+  }
+  
+  stopCluster(clust)
+  
+  per = 0
+  
+  for (j in (2*nsim+1):(3*nsim)) {
+    per = per + finalest[[j]]
+  }
+  
+  print(per/(nsim))     #percentage of censoring
+  
+  results = c()
+  results1 = c()
+  results2 = c()
+  results3 = c()
+  
+  for (j in 1:nsim) {
+    results = rbind(results,finalest[[j]])
+  }
+  
+  for (j in (nsim+1):(2*nsim)) {
+    results1 = rbind(results1,finalest[[j]])
+  }
+  
+  ## Results of model with estimated V
+  
+  par0 = c(parN[[1]],parN[[2]],parN[[3]])
+  par0m = matrix(par0,nsim,(totparl+3),byrow=TRUE)
+  
+  Bias = apply(results[,1:(totparl+3)]-par0m,2,mean)
+  ESE = apply(results[,1:(totparl+3)],2,sd)
+  MSD  = apply(results[,(totparl+4):(2*totparl+6)],2, mean)
+  RMSE = sqrt(apply((results[,1:(totparl+3)]-par0m)^2,2,mean))
+  
+  CP = rep(0,totparl+3)
+  datacp = results[,(2*totparl+7):(4*totparl+12)]
+  for(i in 1:(totparl+3))
+  {
+    index=c(2*i-1,2*i)
+    CP[i]=sum(datacp[,index[1]]<=par0[i] & datacp[,index[2]]>=par0[i])/nsim
+  } 
+  
+  summary = cbind(Bias,ESE,MSD,RMSE,CP) 
+  
+  ## Model with real V
+  
+  par0 = c(parN[[1]],parN[[2]],parN[[3]])
+  par0m = matrix(par0,nsim,(totparl+3),byrow=TRUE)
+  
+  Bias = apply(results1[,1:(totparl+3)]-par0m,2,mean)
+  ESE = apply(results1[,1:(totparl+3)],2,sd)
+  MSD  = apply(results1[,(totparl+4):(2*totparl+6)],2, mean)
+  RMSE = sqrt(apply((results1[,1:(totparl+3)]-par0m)^2,2,mean))
+  
+  CP = rep(0,totparl+3)
+  datacp = results1[,(2*totparl+7):(4*totparl+12)]
+  for(i in 1:(totparl+3))
+  {
+    index=c(2*i-1,2*i)
+    CP[i]=sum(datacp[,index[1]]<=par0[i] & datacp[,index[2]]>=par0[i])/nsim
+  } 
+  
+  summary2 = cbind(Bias,ESE,MSD,RMSE,CP) 
+  
+  
+  sum = summary
+  sum2 = summary2
+  
+  ## Results of model with estimated V
+  
+  colnames(sum) = c("Bias","ESD","ASE","RMSE","CR")
+  rownames(sum) = namescoef
+  xtab = xtable(sum)
+  digits(xtab) = rep(3,6)
+  header= c("sample size",n)
+  addtorow = list()
+  addtorow$pos = list(-1)
+  addtorow$command = paste0(paste0('& \\multicolumn{1}{c}{', header, '}', collapse=''), '\\\\')
+  
+  print.xtable(xtab,file=paste0("estV22_",n,".txt"),add.to.row=addtorow,append=TRUE,table.placement="!")
+  print(xtab, add.to.row=addtorow, include.colnames=TRUE)
+  
+  ## Results of model with real V
+  
+  colnames(sum2) = c("Bias","ESD","ASE","RMSE","CR")
+  rownames(sum2) = namescoef
+  xtab2 = xtable(sum2)
+  digits(xtab2) = rep(3,6)
+  header= c("sample size",n)
+  addtorow = list()
+  addtorow$pos = list(-1)
+  addtorow$command = paste0(paste0('& \\multicolumn{1}{c}{', header, '}', collapse=''), '\\\\')
+  
+  print.xtable(xtab2,file=paste0("realV22_",n,".txt"),add.to.row=addtorow,append=TRUE,table.placement="!")
+  print(xtab2, add.to.row=addtorow, include.colnames=TRUE)
+}
+
 Application22 = function(data)
 {
   results = c()
@@ -1949,7 +2565,7 @@ Application22 = function(data)
     initE = initE[-(2*parl-1)]
     initE = c(initE,0)
     
-    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-1),ub=c(rep(Inf,(totparl-2)),Inf,Inf,1),
+    parhatE = nloptr(x0=initE,eval_f=LikF,Y=Y,Delta=Delta,M=ME,lb=c(rep(-Inf,(totparl-2)),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,(totparl-2)),Inf,Inf,(1-1e-4)),
                      eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     H1 = hessian(LikF,parhatE,Y=Y,Delta=Delta,M=ME,method="Richardson",method.args=list(eps=1e-4, d=0.0001, zer.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE)) 
@@ -1988,7 +2604,7 @@ Application22 = function(data)
     
     initd = c(parhat1,0)
     
-    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-1),ub=c(rep(Inf,totparl),Inf,Inf,1),
+    parhat = nloptr(x0=initd,eval_f=LikF,Y=Y,Delta=Delta,M=M,lb=c(rep(-Inf,totparl),1e-05,1e-5,-(1-1e-4)),ub=c(rep(Inf,totparl),Inf,Inf,(1-1e-4)),
                     eval_g_ineq=NULL,opts = list(algorithm = "NLOPT_LN_BOBYQA","ftol_abs"=1.0e-30,"maxeval"=100000,"xtol_abs"=rep(1.0e-30)))$solution
     
     parhatG = c(parhat,as.vector(gammaest))

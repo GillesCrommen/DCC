@@ -1,10 +1,8 @@
-setwd("C:/Users/u0147039/Desktop/PhD/Papers/Gaussian dependent censoring and confounding/R files/JTPA data application/Data")
+setwd("C:/Users/u0147039/Desktop/PhD/Papers/An instrumental variable approach under dependent censoring/R files/JTPA data application/Data")
 
 fulldata<-read.csv("clean_dataset_JTPA.csv")
 
-#t(as.matrix(M[i,]))
-
-setwd("C:/Users/u0147039/Desktop/PhD/Papers/Gaussian dependent censoring and confounding/R files/R scripts")
+setwd("C:/Users/u0147039/Desktop/PhD/Papers/An instrumental variable approach under dependent censoring/R files/R scripts")
 
 library(MASS)
 library(nloptr)
