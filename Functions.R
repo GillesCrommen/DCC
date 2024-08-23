@@ -579,11 +579,9 @@ SimulationCI11 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
       sumsecder[i]= -sum(prodvec[,i])
     }
     
-    WM = sumsecder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-sumsecder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- sumsecder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     
@@ -1025,11 +1023,9 @@ SimulationCI12 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
       sumsecder[i]= -sum(prodvec[,i])
     }
     
-    WM = sumsecder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-sumsecder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- sumsecder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     
@@ -1469,11 +1465,9 @@ SimulationCI21 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
     
     secder=t(-dlogis(XandW%*%gammaest))%*%prodvec
     
-    WM = secder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-secder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- secder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     
@@ -1914,11 +1908,9 @@ SimulationCI22 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namescoef)
     
     secder=t(-dlogis(XandW%*%gammaest))%*%prodvec
     
-    WM = secder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-secder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- secder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     
@@ -2326,11 +2318,9 @@ MisspecificationCI22 = function(n,nsim,iseed,parN,parl,totparl,parlgamma,namesco
     
     secder=t(-dlogis(XandW%*%gammaest))%*%prodvec
     
-    WM = secder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-secder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- secder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     
@@ -2628,11 +2618,9 @@ Application22 = function(data)
     
     secder=t(-dlogis(XandW%*%gammaest))%*%prodvec
     
-    WM = secder[1:parlgamma]
-    for (i in 2:parlgamma) {
-      newrow<-secder[c(i,(i+2):(i+parlgamma))]
-      WM<-rbind(WM,newrow) 
-    }
+    WM <- matrix(0, nrow = length(gammaest), ncol = length(gammaest))
+    WM[lower.tri(WM, diag = TRUE)] <- secder
+    WM[upper.tri(WM)] <- t(WM)[upper.tri(WM)]
     
     WMI = ginv(WM)
     

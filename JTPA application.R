@@ -44,7 +44,7 @@ hist(dataset$days, breaks = nbreaks, freq = T, col = col , main= "Distribution o
 Y = as.matrix(log(dataset$days))
 Delta = as.matrix(dataset$delta)
 dataset$intercept=rep(1,nrow(dataset))
-X = as.matrix(subset(dataset, select = c(ncol(dataset),1,2,3,5)))
+X = as.matrix(subset(dataset, select = c(ncol(dataset),1,3,5,2)))
 parl=ncol(X)+2
 totparl=2*parl
 parlgamma=parl-1
